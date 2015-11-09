@@ -1,0 +1,97 @@
+ctrl-C
+    Interrupts the process.Many processes (including any program you write 
+    unless you trap SIGINT using the sigaction system call) willl die 
+    instantly when you do this, Some won't.
+
+ctrl-Z
+    Suspend the process.This will leave a stopped process lying around.Type
+    jobs to list all your stopped processes, fg to restart the last process
+    (or fg %1 to start process %1 etc.), bg to keep running the stopped
+    process in the background, kill %1 politely, kill -KILL %1 whether it 
+    wants to die or not.
+ctrl-D
+    Send end-of-file to the process. Useful if you are typing test input to
+    a process that expects to get EOF eventually or writing programs using
+    cat > program.c (not really recommended).For test input, you are often
+    better putting it into a file and using the input redirection
+    ( ./program < test-input-file); this way you can redo the test after
+    you fix the bugs it reveals.
+ctrl-\
+    Quit the process.Sends a SIGQUIT , which asks a process to quit and dump
+    core. Mostly useful if ctrl-C and ctrl-Z don't work.
+
+If you have runaway process that you can't get rid of otherwise, you can use
+ps to get a list of all your processes and their process ids. The kill command can then be used on the offending process, e.g. kill -KILL 6666 if your
+evil process has process id 6666. Sometimes the killall command can simplify
+this procedure, e.g. killall -KILL evil kills all process with command name
+evil.
+
+Redirection input and output
+    Some programs take input from standard input (typically the terminal).If
+    you are doing a lot of testing , you will quickly become tired of typing
+    test input at your program.You can tell the shell to redirect standard
+    input from a file by putting the file name after a < symbol, like this:
+
+    $ ./cout <huge-input-file
+    
+    A '>' symbol is used to redirect standard output, in case you don't 
+    want to read it as flies by on your screen:
+
+    $ ./count <huge-input-file > huger-output-file
+
+    A useful file for both input and output is the special file /dev/null.
+    As input, it looks like an empty file.As output, it eats any character
+    send to it:
+
+    $ ./sensory-deprivation-experiment < /dev/null > /dev/null
+
+    You can also pipe programs together , connecting the output of one to
+    the input of the next.Good programs to put at the end of a pipe are
+    head (eats all but the first ten lines), tail (eats all but the last
+    ten lines), more(lets you page through output by hitting ths space bar,
+    and tee (shows you the output but also saves a copy to a file).
+    A typical command might be something like ./spew | more    or
+    ./slow-but-boring | tee-boring-output
+    Pipes can consist of a long train of programs, each of which processes
+    the output of the previous one and supplies the input to the next. A
+    typical case might be:
+    
+    $ ./do-many-experiments | sort | uniq -c | sort -nr
+    
+    which , if ./do-many-experiments gives the output of one experiment on 
+    each line, produces a list of distinct experimental outputs sorted by
+    decreasing frequency. Pipes like this can often substitute for hours
+    of real programming.
+
+Watching your program run
+    1.Compile your program with the -g3 flag.You can still run gdb if you don't
+      do this, but it won't be able to show you variable names or source lines.
+    2.Run gdb with gdb programname.
+    3.Type break main to stop at the start of the main routine.
+    4.Run your program with run arguments. The run command stands in for the 
+      program name.You can also redirect input as in the shell with run
+      run arguments < filename.
+    5.When the program stops, you can display variables in the current function
+      of expressions involving these variables using display, as in display x, 
+      display a[i], display z+17. In ddd, double clicking  on variable name 
+      will have the same effect.Use undisplay to get rid of any displays you
+      don't want.
+    6.To step through your program , use next(always goes to next line in the 
+      current function, not dropping down into function calls), step (go to 
+      the next executed line, even if it is inside a called function),
+      finish (run until the current function returns), and cont(until the  end
+      of the program or the next breakpoint).
+
+profiling
+    complile program with -pg option to gcc, which inserts profiling code that
+    counts how many times each function is called and how long(on average) each
+    call takes.
+
+    Because the profile is not very smart about shared libraries , we also 
+    include the --static option to force the resulting program to be statically
+    linked. This means that all the code that is used by the program is baked 
+    into the executable instead of being linked in at run-time.(Normally we
+    don't do this because it makes far big executables and big running 
+    programs, since statically-linked libraries can't be shared between more
+    than one running program.)
+j
