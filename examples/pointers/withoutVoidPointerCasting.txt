@@ -1,0 +1,6 @@
+&G    = 0x804a02c
+&s    = 0x804a030
+&a    = 0xbff7e698
+&p    = 0xbff7e69c
+p     = 0x83ef008
+main    = 0x804847d

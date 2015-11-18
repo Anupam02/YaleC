@@ -1,0 +1,19 @@
+// Copyright 2015
+#include <stdio.h>
+
+/* reverse an array in place */
+void reverseArray(int n, int a[n]) {
+  /* algorithm: copy to a new array in reverse order */
+  /* then copy back */
+
+  int i;
+  int copy[n];
+
+  for (i = 0; i < N; i++) {
+    /* the -1 is needed to that a[0] goes to a[n-1] etc. */
+    copy[n-i-1] = a[i];
+  }
+
+  for (i = 0; i < N; i++) {
+    a[i] = copy[i];
+  }

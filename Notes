@@ -94,4 +94,510 @@ profiling
     don't do this because it makes far big executables and big running 
     programs, since statically-linked libraries can't be shared between more
     than one running program.)
-j
+
+Output of preprocessor 
+    You can see what the output of the preprocessor looks like by calling 
+    the C compiler with the -E option, as in c99 -E sumRanges.c
+
+Journey of C source code to executable:
+    sumRange.c (source code)
+        |
+        v
+    [preprocessor (cpp)]
+        |
+        v
+    preprocessed version of sumRange.c
+        |
+        v
+    [compiler (gcc)]
+        |
+        v
+    sumRanges.s (assembly code)
+        |
+        v
+    [assembler (as)]
+        |
+        v
+    sumRange.o (machine code)
+        |
+        v
+    [linker (ld)] <- system library (glibc.a)
+        |
+        v
+    sumRange (executable)
+The good news is, you don't actually have to run all of these steps
+yourself; instead, gcc(which you may be calling as c99) will take care of
+everything for you, particularly for simple programs like sumRange.c that
+fit in a single file.
+
+EOF getchar()
+    There is slight gotcha for character processing with input function like
+    getchar and getc. These return the special value EOF(defined in stdio.h
+    to be -1) to indicate end of file. But 255, which represents 'y'(two 
+    dots above) in the ISO Latin-1 alphabet and in Unicode and which may
+    also appear quite often in binary files, will map to -1 if you put it in
+    a character. So you should store the output of these functions in an int
+    if you need to test for end of file. Once you have done this test, it's
+    OK to put the non-end-of-file character back in a char.
+    
+    /*right*/
+    int c;
+
+    while((c = getchar()) != EOF){
+        putchar(c);
+    }
+
+    /*wrong*/
+    char c;
+
+    while((c = getchar()) != EOF) { /* <- DON'T USE THIS! */
+        putchar(c);
+    }
+    
+mod for floating point (modf)
+    Some operators that work on integers will not work on floating-point
+    types. These are % (use modf from the math library if you really need to
+    get a floating-point remainer) and all of the bitwise operators:
+    ~ , >> , << , & ,^ , and |
+
+floor, ceil, round, trunc, and nearbyint in the GNU libc reference manual
+
+The IEEE-754 floating-point standard
+    The IEEE-754 floating-point standard is a standard for representing and
+    manipulating floating-point quantities that is followed by all modern
+    computer systems.It defines several standard representation of floating
+    point numbers, all of which have the following basic pattern (the 
+    specific layout here is for 32-bit floats):
+
+    bit    31 30    23 22                    0
+           S  EEEEEEEE MMMMMMMMMMMMMMMMMMMMMMM
+
+    S- sign bit ( + ve or -ve) 0 -> positive , 1 -> negative
+    EEEEEEEE - exponents in excess-127 binary notation;
+    ''' to long to read please go through it later :) '''
+
+error
+    Error In general, floating-point numbers are not exact: they are likely
+    to contain round-off error because of the truncation of the mantissa to
+    a fixed number of bits. This is particularly noticeable for large values
+    (e.g. 1e+12 in the table above), but can also be seen in fractions with
+    values that aren't powers of 2 in the denominator (e.g. 0.1). Round-off
+    error is often invisible with the default float output formats, since
+    they produce fewer digits than are stored internally, but can accumulate
+    over time, particularly if you subtract floating-point quantities with
+    values that are close(this wipes out the mantissa without wiping out the
+    error, making the error much larger relative to the number that remains)
+
+    Note that a consequence of the internal structure of IEEE 754 floating-
+    point numbers is that small integers and fractions with a small 
+    numerators and power-of-2 denominators can be represented exactly-indeed
+    , the IEEE 754 standard carefully defines floating-point operations so
+    that arithmetic on such exact integers will give the same answer as 
+    integer arithmetic would(except of course, for division that produces
+    a remainder). This fact can sometimes be exploited to get higher
+    precision on integer values than is available from the standard integer
+    types; 
+    For example, a double can represent any integer between -2^53 to 2^53 
+    exactly, which is a much wider range than the values from -2^31 to 
+    2^31-1 that fit in a 32-bit int or long. (A 64-bit long long does better
+    ) so double should be considered for applications where large precise
+    integers are needed (such as calculating the net worth in pennies of
+    a billionare.)
+
+math.h linking is not done by default
+    gcc -o program program.c -lm
+    If you don't do this , you will get errors from the compiler about 
+    missing functions. The reason is that the math library is not linked in
+    by default, since for many system programs it's not needed.
+
+Unary operators, ternary ?: and assignment operators are the only ones that
+associate right-to-left
+For unary operators, this mostly affects expressions like *p++, which is 
+equivalent to *(p++) (increment the pointer first then dereference it) 
+rather than (*p)++ (increment the thing that p points to).
+
+variable
+    A variable is a name given in a program for some region of memory. Each
+    variable has a type, which tells the computer how big the region of 
+    memory corresponding to it and how to treat the bits stored in that 
+    region when performing various kinds of operations(e.g. integer 
+    variables are added together by very different circuitry than floating-
+    point variables , even though both represent numbers as bits). In 
+    modern programming languages, a variable also has a scope ( a limit on
+    where the name is meaningful, which allows the same name to be used for
+    different variables in different variables in different parts of the
+    program) and an extent (the duration of the variable's existence, 
+    controlling when the program allocates and deallocates space for it).
+
+_variablename
+    An identifier in C must start with a lower or uppercase letter or the
+    underscore character _. Typically variables starting with underscores 
+    are used internally by system libraries, so it's dangerous to name your
+    own variables this way.
+
+static and global initializer case
+    For ordinary local variables, the initializer value can be any
+    expression, including expression that call other functions. There is an
+    exception for variables allocated when the program starts (which 
+    includes global variables outside functions and static variables inside
+    functions), which can only be initialized to constant expressions.
+
+    const char * const greeting = "Hello Anupam!";
+    const int greetingLength = strlen(greeting);
+
+    The last two examples show how initializers can set the value of
+    variables that are declared to be const (the variable greeting is both
+    constant itself, because of const greeting, because it is of type
+    const char). This is the only way way to set the values of such
+    variables without cheating, because the compiler will complain if you
+    try to do an ordinary assignment to a variable declared to be constant.
+
+static variables - when you want to use it?
+    a) you only need one instance of , 
+    b) you need to survive between function calls, and
+    c) it would be annoying to pass around as an extra argument to any function
+       that uses it.
+    An example would be the internal data structures used by malloc, or the 
+    count variable.
+
+Additional qualifiers for global variables
+    Here are three variable declarations that illustrates how this work
+    unsigned short Gloabl = 5; /* global variable, can be used anywhere */
+    extern float GlobalFloat; /* this global variable, defined somewhere else,
+    	   	 	      	 has type */
+    static char Character = 'c'; /* global variable, can only be used by
+    	   		    	    functions in this file only */
+    Typically, an extern definition would appear in a header file so that it 
+    can be included in any function that uses the variable, while an oridinary
+    global variable definition would appear in a C file so it only occurs once.
+
+Pointers to const
+    A pointer to a region that should not be modified should be declared with
+    const type:
+        const char *string = "You cannot modify this string.";
+    The const in the declaration above applies to the characters that string
+    points to: string is not const itself, but is instead a pointer to const.
+    It is still possible to make string point somewhere else, say by doing an
+    assignment:
+	string = "You cannot modify this string either."
+    If you want to make it so that you can't assign to string, put const right
+    before the variable name:
+        /* prevent assigning to string as well */
+    const char * const string = "You cannot modify this string.";
+
+getchar() and putchar()
+    Both getchar() and putchar() are wrappers for more general routines getc
+    and putc that allows you to specify which stream you are using. To 
+    illustrate getc and putc, here's how we might define getchar and putchar if
+    they didn't exist already:
+    	 int getchar2(void)
+	 { 
+	   return getc(stdin):
+	 }
+	 
+	 int putchar2(void)
+	 {
+	   return putc(c, stdout);
+	 }
+ungetc
+    A rather odd feature of the C standard I/O library is that if you don't 
+    like the character you just got, you can put it back using the ungetc 
+    function. the limitation on ungetc are that (a) you can only push one 
+    character back, and (b) that character can't be EOF. The ungetc function
+    is provided because it makes certain high level input tasks easier; for 
+    example, if you want to parse a number written as a sequence of digits, you
+    need to be able to read characters until you hit the first non-digit.But if
+    the non-digit is going to be used elsewhere in your program, you don't want
+    to eat it. The solution is to put it back using ungetc.
+
+recursive descent parser
+    because calc.c routines calls itself recursively as it works its way 
+    down through the input, it is an example of a recursive descent parser.
+    Parsers for more complicated languages like C is usually not written by
+    hands like this, but are instead constructed mechanically using a
+    Parser generator.
+File I/O
+    Reading and writhing files is done by creating new streams attached to
+    the files. The function that does this is fopen. It takes two arguments:
+    a filename, and a flag that controls whether the file is opened for 
+    reading or writing. The return value of fopen has type FILE* and can be
+    used in putc, getc, fprintf, etc. just like stdin, stdout, or stderr.
+    When you are done using a stream, you should close it using fclose.
+
+Function declarations and modules
+    By default, functions have global scope: they can be used anywhere in your 
+    program , even in other files. If a file doesn't contain a declaration for
+    a function someFunc before it is used, the compiler will assume that it is
+    declared like int someFunc() (i.e. return type int and unknown arguments).
+    This can produce infuriating complaints later when the compiler hits the real
+    declaration and insists that your function someFunc should be returning an 
+    int and your are a bonehead for declaring it otherwise.
+
+    The solution to such insulting compiler behaviour errors is tho either a) 
+    move the function declaration before any functions that use it; or b) put it
+    in a declarattion without a body before any functions that use it, in 
+    addition to the declaration that appears in the function definition.( Note 
+    that this violates the no seperate but equal rule, but the compiler should 
+    tell you when you make a mistake.) Option b) is generally preffered, and is
+    the only option when the function is used in a different file.
+    
+    To make sure all declartions of a function are consistent , the usual 
+    practice is to put them in an include file. For example, if distSquared in 
+    used in a lot of place, we might put it in its own file distSquared.c:
+    
+	#include "distSquared.h"
+	
+	int distSqared(int dx, int dy)
+	{ 
+	  return dx*dx + dy*dy;
+	}
+
+    save it as a examples/functions/distSquared.c
+    The file distSquared.c above uses #include to include a copy of the following
+    header file distSquared.h:
+
+        /* Returns the square of the distance between two points separated by 
+	   dx in the x direction and dy in the y direction. */
+	int distSquared(int dx, int dy);
+  
+    save it as a examples/functions/distSquared.h
+
+Static functions
+    By default, all functions are global; they can be used in any file of your 
+    program whether or not a declaration appears in a header file. To restrict
+    access to the current file, declare a function static.
+    It's generally good practice to declare a function static unless you intend 
+    to make it unavailable, since not doing so can cause namespace conflicts, 
+    where the presence of two functions with the same name either prevents the
+    program from linking or -even worse -- cause the wrong function to be 
+    called.The latter can happen with library functions, since C allows the 
+    programmer to override library functions by defining a new function with
+    the same name.(but C++ does not , remember once you tried to create a 
+    swap function , but it turns out that there was already a swap function 
+    in std::swap).
+
+Static variables
+    Static local variables are stored outside the stack with global variables,
+    and have unbounded extent. But they are only visible inside the function
+    that declares them. This makes them slightly less dangerous than global
+    variables -- there is no fear that some foolish bit of code elsewhere 
+    will quietly change their value -- but it is still the case that they 
+    usually aren't what you want. It is also likely that operations on 
+    static variables will be slightly slower than operations on ordinary
+    ("automatic") variables , since making them persistent means that they 
+    have to be stored in (slow) main memory insted of (fast) registers.
+
+Pointer Preference
+    (*p)++;         /* increment the value pointed to by p */
+    *p++;           /* WARNING: increments p itself */
+    You can print a pointer value using printf with the %p format specifier.
+    To do so, you should (note that should not must) convert the pointer to
+    type void * first using a cast ( see below for void * pointers), although
+    on machines that don't have different representations for different pointer
+    types, this may not be necessary.
+
+Null Pointer
+    The special value 0, known as the null pointer, may be assigned to a
+    pointer of any type.It may or may not be represented by the actual
+    address 0, but it will act like 0 in all contexts (e.g., it has the 
+    value false in an if or while statement). Null pointers are often used
+    to indicate missing data or failed functions. Attempting to dereference
+    a null pointer can have catastrophic effects, so it's important to be
+    aware of when you might be supplied with one.
+
+pointers as function arguments
+    Generally if you pass the value of a variable into a function(with no &)
+    , you can be assured that the function can't modify your original 
+    variable. When you pass a pointer, you should assume that the function
+    can and will change the variable's value. If you want to write a 
+    function that takes a pointer argument but promises not to modify the
+    target of the pointer, use const, like this:
+    	   void printPointerTarget(const int *p) {
+	   	printf("%d\n", *p);
+	   }
+    The const qualifier tells the compiler that the target of the pointer 
+    shouldn't be modified. This will cause it to return an error if you try
+    to assign to it anyway:
+           void printPointerTarget(const int *p) {
+	   	*p = 5; / * produces compile-time error */
+		printf("%d\n", *p);
+	   }
+    Passing const pointers is mostly used when passing large structures to 
+    functions, where copying a 32-bit pointer is cheaper that copying the
+    thing it points to.
+
+cast away const:
+    If you really want to modify the target anyway, C lets you "cast away
+    const":
+	void printPointerTarget(const int *p) {
+	     *((int *) p) = 5; /* no compile time error */
+	     printf("%d\n", *p);
+	}
+    There is no good reason to do this. The one exception might be if the
+    target of the pointer represents an abstract data type, and you want to
+    modify its representation during some operation to optimize things 
+    somehow in a way that will not be visible outside the abstraction
+    barrier, making it appear to leave the target constant.
+
+pointers should not be returned from a function
+    Note that while it is safe to pass pointers down into functions, it is
+    very dangerous to pass pointers up. The reason is that the space used to
+    hold any local variable of the function will be reclaimed when the 
+    function exists, but the pointer will still point to the same location.
+    even though something else may now be stored there. So this is very
+    dangerous:
+	int * dangerous(void) {
+	    int n;
+	    return &n;       /* NO! */
+	}
+	...
+	*dangerous() = 12; /* writes 12 to some unknown location */    
+    An exception is when you can guarantee that the location pointed to will
+    survive even after the function exits, e.g. when the location is 
+    dynamically allocated using malloc (see below) or when the local 
+    variable is declared static:
+    	     int *returnStatic(void) {
+	     	 static int n;
+		 return &n;
+	     }
+	     ...
+	     *returnStatic() = 12; /* writes 12 to the hidden static variable */
+
+Pointer arithmetic and arrays
+    Because pointers are just numberical values , one can do arithmetic on 
+    them. Specifically, it is permitted to
+    * Add an integer to a pointer or subtract an integer from a pointer. The
+      effect of p+n where p is a pointer and n is an integer is to compute
+      the address equal to p plus n times the size of whatever p points to 
+      (this is why int * pointers and char * pointers aren't the same).
+    * Subtract one point from another. The two pointers must have the same
+      type (e.g. both int * or both char *). The result is a signed integer
+      value of type ptrdiff_t, equal to the numberical difference between
+      the addresses divided by the size of the objects pointed to.
+    * Compare two pointers using ==, !=, <, >, <= , or >=.
+    * Increment or decrement a pointer using ++ or --.
+
+Array 
+    The array name acts like a constant pointer to the zeroth element of the
+    array. It is thus possible to set or read the zeroth element using *a.
+    But because the array name is constant, you can't assign to it:
+    	*a = 12;            /* sets zeroth element to 12 */
+	 a = &n;            /* #### DOESN'T WORK #### */
+
+accessing array element beyond range
+    Note that C doesn't do any sort of bounds checking. Given the 
+    declaration int a[50]; , only indices from a[0] to a[49] can be used
+    safely. However, the compiler will not blink at a[-12] or a[10000]. If 
+    you read from such a location you will get garbage data; if you write to
+    it, you will overwrite god-knows-what, possibly trashing some other 
+    variable somewhere else in your program or some critical part of the
+    stack (like the location to jump to when you return from a function).
+    
+buffer overruns:
+    It is upto you as a programmer to avoid such buffer overruns, which can
+    lead to very mysterious ( and in the case of code that gets input from
+    a network, security-damaging) bugs. The valgrid program can help detect
+    such overruns in some cases.
+
+(int *a) or (int a[])
+    In a function argument int a[] is just syntactic sugar for int *a. You 
+    can even modify what a points to inside sumArray by assigning to it. 
+    This will allow to do things that you usually don't want to do, like 
+    this hideous routine:
+    	 /* return the sum of the first n values in a */
+	 int sumArray(int n, const int a[]) {
+	     const int *an;  /* pointer to first element not in a */
+	     int sum;
+	     sum = 0;
+	     an = a + n;
+	     while( a < an) {
+	     	    sum += *a++;
+             }
+	     return sum;
+	 }
+
+2D array:
+   Like other array declarations, the size must be specified at compile 
+   in pre-C99 C. If this is not desirable, a similar effect can be obtained
+   by allocating each row seperately using malloc and building a master list
+   of pointers to rows, of type int **. The downside of this approach is
+   that the array is no longer contiguous ( which may affect cache
+   performance) and it requires reading a pointer to find the location of a
+   particular value, instead of just doing address arithmetic starting from
+   the base address of the array. But elements can still be accessed using 
+   the a[i][j] syntax. 
+
+Variable-length arrays:
+    C99 adds the feature of variable-length arrays, where the size of the 
+    array is determined at run-time. These can only appear as local variables
+    in procedures (automatic variables) or in argument lists. In the case of
+    variable-length arrays in argument lists, it is also necessary that the
+    length of the array be computable form previous arguments.
+
+    Variable-length Arrays can Sometimes be used for run-time storage 
+    allocation , as an alternative to malloc and free . A variable-length
+    Array allocated as a local variable will be deallocated when the 
+    containing scope (usually a function body, but maybe just a compound
+    statement marked off by braces) exits. One consequence of this is 
+    that you can't return a Variable-length array from a function.
+
+    While using Variable-length arrays for this purpose can simplify code in
+    some cases, as a general programming practice it is extremely dangerous.
+    The reason is  that, unlike allocations through malloc, Variable-length
+    array allocations are typically allocated on the stack (which is often
+    more constrained than the heap) and have no way of reporting failure.
+    So if there isn't enough room for your variable-length array, odds are
+    you won't find out until a segmentation fault occurs somewhere later in
+    your code when you try to use it.
+    (As an additional annoyance, gdb is confused by two-dimensional variable
+    -length arrays.)
+
+Void Pointers
+    A special pointer type is void *, a "pointer to void". Such pointers are
+    declared in the usual way:
+    	     void *nothing;   /* pointer to nothing */
+    Unlike ordinary pointers, you can't dereference a void * pointer or do
+    arithmetic on it, because the compiler doesn't know what type it points
+    to. However, you are allowed to use a void * as a kind of "raw address"
+    pointer value that you can store arbitrary pointers in. It is permitted
+    to assign to a void * variable from an expression of any pointer type; 
+    conversely, a void * pointer value can be assigned to a pointer variable
+    of any type. An example is the return value of malloc or the argument
+    of a free, both of which are declared as void.
+    * Note that K&R suggests using an explicit cast for the return value of
+      malloc. This is now acknowledged by the authors to be an error, which
+      arose from the need for a cast prior to the standardization of void * in 
+      ANSI C. See http://cm.bell-labs.com/cm/cs/cbook/2ediffs.html
+      	   
+	   int *block;
+
+	   block = malloc(sizeof(int) * 12); /* void * converted to int * before assignment */
+	   free(block);                      /* int * converted to void * before passing to free */
+
+    If you need to use a void * pointer as a pointer of a particular type in an
+    expression, you can cast it to the appropriate types by prefixing it with
+    a type name in parentheses, like this:
+        int a[50];      /* typical array of ints */
+        void *p;        /* dangerous void pointer */
+        
+        a[12] = 17;     /* save that valuable 17 */
+        p = a;          /* p now holds base address of a */
+
+        printf("%d\n", ((int *) p)[12]); /* get 17 back */
+
+    Usually if you have to start writing casts, it's a sign that you are doing
+    something wrong, and you run the danger of violating the type system --say,
+    by tricking the compiler into treating a block of bits that are supposed
+    to be an int as four chars. But violating the type system like this will
+    be necessary for some applications, because even the weak type system in C
+    turns out to be too restrictive for writing certain kinds of "generic" code
+    that work on values of arbitrary types.
+Alignement
+    One issue with casting pointers to and from void * is that you may violate 
+    the alignmetnt restrictions for a particular kind of pointers on some 
+    architectures.
+
+    Back in the 8-bit era of the 1970s, a single load or store operation would
+    access a single byte of memory, and because some data (chars) are still one
+    byte wide, C pointers retain the ability to address individual bytes, But
+    present day

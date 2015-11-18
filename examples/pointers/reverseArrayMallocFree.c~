@@ -1,0 +1,14 @@
+// Copyright 2015
+#include <stdio.h>
+
+/* reverse an array in place */
+void reverseArray(int n, int a[n]) {
+  /* algorithm: copy to a new array in reverse order */
+  /* then copy back */
+
+  int i;
+  int *copy;
+
+  copy = <int *> malloc(sizeof(int) * n);
+  assert(copy);  /* or some other error check */
+  

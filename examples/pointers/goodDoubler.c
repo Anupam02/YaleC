@@ -1,0 +1,19 @@
+// Copyright 2015
+#include <stdio.h>
+
+void doubler(int *x) {
+  *x *= 2;
+}
+
+int main(int argc, char *argv[])
+{
+  int y;
+
+  y = 1;
+
+  doubler(&y);         /* sets y to 2 */
+
+  printf("%d\n", y);
+  o
+  return 0;
+}
