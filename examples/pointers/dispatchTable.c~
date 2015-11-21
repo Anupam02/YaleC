@@ -1,0 +1,19 @@
+// Copyright 2015 YaleUniversity
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <limits.h>
+
+/*
+ * Demostrate use of dispatch tables.
+ */
+
+/* print a character twice */
+/* like putchar, returns character if successful or EOF on error */
+int putcharTwice(int c) {
+  if (putchar(c) == EOF || putchar(c) == EOF) {
+    return EOF;
+  } else {
+    return c;
+  }
+}

@@ -21,7 +21,8 @@ ctrl-\
     core. Mostly useful if ctrl-C and ctrl-Z don't work.
 
 If you have runaway process that you can't get rid of otherwise, you can use
-ps to get a list of all your processes and their process ids. The kill command can then be used on the offending process, e.g. kill -KILL 6666 if your
+ps to get a list of all your processes and their process ids. The kill command
+can then be used on the offending process, e.g. kill -KILL 6666 if your
 evil process has process id 6666. Sometimes the killall command can simplify
 this procedure, e.g. killall -KILL evil kills all process with command name
 evil.
@@ -600,4 +601,314 @@ Alignement
     Back in the 8-bit era of the 1970s, a single load or store operation would
     access a single byte of memory, and because some data (chars) are still one
     byte wide, C pointers retain the ability to address individual bytes, But
-    present day
+    present day memory architectures typically have a wider data path, and the
+    CPU may load or store as much as 8 bytes (64 bits) in single operations.
+    This makes it natural to organize memory into 4-byte or 8-byte words even
+    though addresses still refer to individual bytes. The effect of the memory
+    architecture is that the address of memory words must be aligned to a 
+    multiple of the word size: so with 4-byte words, the address 0x1037ef44
+    (multiple of 4) could refer to a full word, but 0x1037ef45(one more than a
+    multiple of 4) could only be used to refer to a byte within a word.
+
+    What this means for a C program depends on your particular CPU and compiler.
+    If you try to use something like 0x1037ef45 as an int *, one of three things
+    might happen:
+    	  1. The CPU might load the 4 bytes starting at this address, using 
+	     two accesses to memory to piece together the full int out of
+	     fragments of words. This is done on Intel architectures, but costs
+	     performance.
+	  2. The CPU might quietly zero out the last two bits of the address,
+	     loading from 0x1037ef44 even though you asked for 0x1037ef45. This
+	     happens on some other architectures, notably ARM.
+	  3. The CPU might issue a run-time exception.
+
+    All of these outcomes are bad, and the C standard does not specify what
+    happens if you try to dereference a pointer value that does not satisfy
+    the alignmetnt restrictions of its target type. Fortunately, unless you
+    are doing very nasty things with casts, this is unlikely to come up, 
+    because any pointer value you will see in a typical program is likely
+    to arise in one of three ways:
+    
+	1. By taking the address of some variable. This pointer will be 
+	   appropriately aligned, because the compiler allocates space for
+	   each variable (including fields within structs) with 
+	   appropriate alignmetnt.
+	2. By computing an offset address using pointer arithmetic either
+	   explicitly (p+n) or implicitly (p[n]). In either case, as long as
+	   the base pointer correctly aligned, the computed pointer will also
+	   be correctly aligned.
+	3. By obtaining a pointer to an allocated block of memory using malloc
+	   or a similar function. Here malloc is designed to always return 
+	   blocks with the maximum possible required alignment, just to avoid
+	   problems when you use the result elsewhere.
+	   
+    On many compilers , you can use __alignof(type) to get the alignment 
+    restriction for a particular type. This was formalized in C11 (with a
+    different name!).
+
+    The other place where alignment can create issues is that if you make
+    a struct with components with different alignment restrictions, you may end
+    up with some empty spaces.For example, on a machine that enforces 4-byte
+    alignment for ints, building a struct that contain a char and an int will
+    give you something bigger than you might expect:
+
+    	 #include <stdio.h>
+	 struct ci {
+	 	char c;  /* offset 0 */
+		     	 /* 3 unused bytes go here */
+		int i;   /* offset 4 */
+	 }
+	 struct ic {
+	 	int i;   /* offset 0 */
+		char c;  /* offset 4 */
+	 }
+	 int main(int argc, char *argv[]) {
+	     printf("sizeof(struct ci) == %lu\n", sizeof(struct ci));
+	     printf("sizeof(struct ic) == %lu\n", sizeof(struct ic));
+
+	     return 0;
+	 }
+	 $ c99 -Wall -o structPacking structPacking.c
+	 $ ./structPacking
+	 sizeof(struct ci) == 8
+	 sizeof(struct ic) == 8
+
+    In both cases, the compiler packs in an extra 3 bytes to make the size of
+    the struct a multiple of the worst alignment of any of its components.
+    If it didn't do this, you would have trouble as soon as you tried to make
+    an array of these things.
+
+Run-time storage allocation using malloc
+    C does not generally permit arrays to be declared with variable sizes
+    C also doesn't let local variables outlive the function they are declared
+    in. Both features can be awkward if you want to build data structures at
+    run time that have unpredicatable (perhaps even changing) sizes and that
+    are intended to persist longer than the function that create them. To build
+    such structures, the standard C library provides the malloc routine, which
+    asks the operating system for a block of space of a given size (in bytes).
+    With a bit of pushing and shoving, this can be used to obtain a block of 
+    space that for all practical purposes acts just like an array.
+
+    To use malloc, you must include stdlib.h at the top of your program. The 
+    declaration for malloc is 
+
+    		void *malloc(size_t);
+
+    where size_t is an integer type (often unsigned long). Calling malloc with
+    an argument of n allocates and returns a pointer to the start of a block of
+    n bytes if possible. If the system can't give you the space you asked for
+    (maybe you asked for more space than it has), malloc returns a null pointer.
+    It is good practice to test the return value of malloc whenever you call it.
+
+    Because the return type of malloc is void *, it's return value can be assigned
+    to any variable with a pointer type. Computing the size of the block you need
+    is your responsibility -- and you will be punished for any mistakes with 
+    difficult-to-diagnose buffer overrun errors --but this task is made slightly
+    easier by the built-in sizeof operator that allows you to compute the size
+    in bytes of any particular data types.
+
+    When you are donw with a malloc'd region, you should return the space to
+    the system using the free routine, also defined in stdlib.h. If you don't 
+    do this, your program will quickly run out of space. The free routine takes
+    a void * as its argument and returns nothing. It is good practice to write 
+    a matching destructor that de-allocates an object for each constructor 
+    (like makeIntArray) that makes one.
+
+    void destroyIntArray(int *a) {
+        free(a);
+    }
+    
+    It is a serious error to do anything at all with a block after it has been
+    freed. This is not necessarily because free modifies the contents of the 
+    block(although it might), but because when you free a block you are 
+    granting  the storage allocator permission to hand the same block out in 
+    response to a future call to malloc, and you don't want to step on whatever
+    other part of your program is now trying to use that space.
+
+    It is also possible to grow or shrink a previously allocated block. This is
+    done using the realloc function, which is declared as
+
+    void *realloc(void *oldBlock, size_t newSize);
+
+    The realloc function return a pointer to the resized block. It may or may 
+    not allocate a new block. If there is room, it may leave the old block in 
+    place and return its argument. But it may allocate a new block and copy 
+    the contents of the old block, so you should assume that the old pointer 
+    has been freed.
+
+Function pointers
+    A function pointer, internally, is just the numerical address for the code
+	a function. when a function name is used by itself without parentheses, the
+	value is a pointer to the function, just as the name of an array by itself
+	is a pointer to its zeroth element. Function pointers can be stored in 
+	variables, structs, unions, and arrays and passed to and from function just
+	like any other pointer type. They can also be called: a variable of type
+	function pointer can be used in place of a function name.
+
+	Function pointers are not used as much in C as in functional languages, but
+	there are many common uses even in C code.
+Function pointer declarations
+    A Function pointer declaration looks like a Function declaration, except 
+	that the Function name is wrapped in parentheses and preceded by an asterisk.
+	For example:
+
+	/* a Function taking two int arguments and returning an int */
+	int Function (int x, int y);
+
+	/* a pointer to such a function */
+	int (* pointer)(int x, int y);
+
+	As with function declarations, the names of the arguments can be omitted.
+
+Callbacks 
+    A callback is when we pass a function pointer into a function so that the
+	function can call our function when some event happens or it needs to 
+	compute something.
+
+	A classic example is the comparison argument to qsort, from the standard
+	library:
+	
+	/* defined in stdlib.h */
+	void
+	qsort(
+		void *base,
+		size_t n,
+		size_t size,
+		int (*cmp)(const void *key1, const void *key2)
+	);
+
+	This is a generic sorting routine that will sort any array in place. It 
+	needs to know (a) the base address of the array; (b) how many elements
+	there are; (c) how big each element is; and (d) how to compute two 
+	elements. The only tricky part is supplying the comparison, which could
+	involve arbitrarily-complex code. So we supply this code as a function 
+	with an interface similar to strcmp.
+
+	static int
+	compare_ints(void *key1, void *key2)
+	{
+		return *((int *) key1) - *((int *) key2);
+	}
+
+	int
+	sort_int_array(int *a, int n)
+	{
+		qsort(a, n, sizeof(*a), compare_ints);
+	}
+
+	Other examples might include things like registering an error handler for a
+	library, instead of just having it call abort() or something equally 
+	catastrophic, or providing a cleanup function for freeing data passed into a
+	data structure.
+
+Dispatch tables
+    Alternatives to gigantic if/else if or switch  statements. The idea is to 
+	build an array of function pointers(or, more generally, some sort of 
+	dictionary data structure), and use the value we might otherwise be feeding
+	to switch as an index into this array. Here is a simple example, which 
+	echoes most of the characters in its input intact, except for echoing every
+	lowercase vowel twice.
+
+Strings
+    There are two standard ways to represent strings
+	* As a delimited string
+	  Where the end of a string is marked by a special character. The advantages
+	  of this method are that only one extra byte is needed to indicate the
+	  length of an arbitrary long string, that strings can be manipulated by a
+	  simple pinter operations, and in some cases that common string operations
+	  that involve processing the entire string can be performed very quickly.
+	  The disadvantage is that the delimiter can't appear inside any string, 
+	  which limits what kind of data you can store in a string.
+	* As a Counted string
+	  Where the string data is prefixed or supplemented with an explicit count
+	  of the number of characters in the string. The advantage of this
+	  representation is that a string can hold arbitrary data (including 
+	  delimiter characters) and that one can quickly jump to the end of the 
+	  string without having to scan its entire length. The disadvantage is
+	  that maintaining a separate count typically requires more space than
+	  adding a one-byte delimiter (unless you limit your string length to 255
+	  characters - Because count upto 255 can be managed in 1 byte) and that 
+	  more care needs to be taken to make sure that the count is correct.
+
+C strings
+    Because delimited strings are simpler and take less space, C went for 
+	delimited strings. A string is a sequence of characters terminated by a null
+	character '\0'.
+	Note that the null character is not the same as null pointer, although both
+	appear to have the value 0 when used in integer contexts. A string is 
+	represented by a variable of type char *, which points to the zeroth
+	character of the string.
+	The programmer is responsible for allocating and managing space to store 
+	strings, except for explicit string constants, which are stored in a 
+	special non-writable string space by the compiler.
+	
+	If you want to use counted strings instead, you can build your own using a
+	struct. Most scripting languages written in C (e.g. Perl, Python, PHP, etc.)
+	use this approach internally. (Tcl is an exception , which is one of many 
+	good reasons not to use Tcl).
+
+String Constants
+    A string constant in C is represented by a sequence of characters within 
+	double quotes. Standard c character escape sequences like \n(newline), \r
+	(carriage return ), \a (bell) , \0x17 (character with hexadecimal code 0x17)
+	, \\ (backslash), and \"(double quote) can all be used inside string 
+	constants. The value of a string constant has type const char *, and can be
+	assigned to variables and passed as function arguments or return-values of
+	this type.
+
+	Two string constants seperated only by whitespaces will be concatenated by
+	the compiler as a single constant: "foo" "bar" is the same as "foobar".
+	This feature is not much used in normal code, but shows up Sometimes in 
+	macros.
+
+String buffers
+    The problem with string constant is that you can't modify them( immutable
+	sort of in object oriented world). If you want to build strings on the fly,
+	you will need to allocate space for them. The traditional approach is to 
+	use a buffer, an array of chars.
+	
+	char hi[3] = { 'h', 'i', '\0' };
+	puts(hi) --> 'hi'
+
+	Note that the buffer needs to have size at least 3 in order to hold all 
+	three characters. A common error in programming with C strings is to forget
+	to leave space for the null at the end (or to forget to add the null, which
+	can have comical results depending on what you are using your surprisingly
+	long string for).
+
+String Buffers and the perils of gets
+    Fixed-size buffers are a common source of errors in older C programs, 
+	particularly ones written with the library routine gets. The problem is that
+	if you do something like
+	   
+	   strcpy(smallBuffer, bigString);
+
+	the strcpy function will happily keep copying characters across memory long
+	after it has passed the end of smallBuffer. While you can avoid this to a
+	certain extent when you control where bigString is coming from, the 
+	situation becomes particularly fraught if the string you are trying to store
+	comes from the input, where it might be supplied by anybody, including 
+	somebody who is trying to execute a buffer overrun attack to seize control
+	of your program.
+	If you do need to read a string from the input, you should allocate the 
+	receiving buffer using malloc and expand it using realloc as needed.
+
+Operations on Strings
+    Unlike many programming languages, C provides only a rudimentary string
+	processing library. The reason is that many common string-processing tasks
+	in C can be done very quickly by hand.
+
+	For example, suppose we want to copy a string from one buffer to another.
+	The library function strcpy declared in string.h will do this for us (and is
+	usually the right thing to use), but if it didn't exist we could write
+	something very close to it using a famous C idiom.
+	
+	void
+	strcpy2(char *dest, const char *src) {
+		while (*dest++ = *src++);
+	}
+	
+	The externally visible difference between strcpy2 and the original strcpy is
+	that strcpy returns a char * equal to its first argument. It is also likely
+	that any implementation of strcpy found in a recent C library takes 
+	advantage of the width of the memory data path to copy more than 

@@ -1,0 +1,8 @@
+#include <stdio.h>
+
+struct ci {
+    char c;   /* offset 0  */
+              /* 3 unused bytes go here */
+    int i;    /* offset 4 */
+};
+

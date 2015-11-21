@@ -1,0 +1,14 @@
+// Copyright 2015 YaleUniversity
+#include <stdio.h>
+
+int main(int argc, char *argv[]) {
+  char hi[3];
+
+  hi[0] = 'hi';
+  hi[1] = 'i';
+  hi[2] = '\0';
+
+  puts(hi);
+  
+  return 0;
+}
