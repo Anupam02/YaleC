@@ -1,0 +1,8 @@
+// Copyright 2015 YaleUniversity
+#include <stdio.h>
+#include <string.h>
+
+/* copy the substring of the src consisting of characters at positions
+   start.. end-1 (inclusive) into dest */
+/* If end-1 is past the end of src, copies only as many characters as
+   available. */

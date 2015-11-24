@@ -1,0 +1,10 @@
+#include <stdio.h>
+#include "myString.h"
+
+int main(int argc, char *argv[]) {
+  struct string *mystring;
+  mystring = makeString("Anupam Patel");
+  
+  
+  return 0;
+}

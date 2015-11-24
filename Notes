@@ -1,6 +1,6 @@
 ctrl-C
     Interrupts the process.Many processes (including any program you write 
-    unless you trap SIGINT using the sigaction system call) willl die 
+    unless you trap SIGINT using the sigaction system call) Will die 
     instantly when you do this, Some won't.
 
 ctrl-Z
@@ -49,7 +49,7 @@ Redirection input and output
     You can also pipe programs together , connecting the output of one to
     the input of the next.Good programs to put at the end of a pipe are
     head (eats all but the first ten lines), tail (eats all but the last
-    ten lines), more(lets you page through output by hitting ths space bar,
+    ten lines), more(lets you page through output by hitting the space bar,
     and tee (shows you the output but also saves a copy to a file).
     A typical command might be something like ./spew | more    or
     ./slow-but-boring | tee-boring-output
@@ -84,7 +84,7 @@ Watching your program run
       of the program or the next breakpoint).
 
 profiling
-    complile program with -pg option to gcc, which inserts profiling code that
+    compile program with -pg option to gcc, which inserts profiling code that
     counts how many times each function is called and how long(on average) each
     call takes.
 
@@ -158,7 +158,7 @@ EOF getchar()
 mod for floating point (modf)
     Some operators that work on integers will not work on floating-point
     types. These are % (use modf from the math library if you really need to
-    get a floating-point remainer) and all of the bitwise operators:
+    get a floating-point remainder) and all of the bitwise operators:
     ~ , >> , << , & ,^ , and |
 
 floor, ceil, round, trunc, and nearbyint in the GNU libc reference manual
@@ -911,4 +911,301 @@ Operations on Strings
 	The externally visible difference between strcpy2 and the original strcpy is
 	that strcpy returns a char * equal to its first argument. It is also likely
 	that any implementation of strcpy found in a recent C library takes 
-	advantage of the width of the memory data path to copy more than 
+	advantage of the width of the memory data path to copy more than one 
+	character at a time.
+
+	Because C pointers act exactly like array names, you can also write strcpy2
+	using explicit array indices. the result is longer but may be more readable
+	if you aren't a C fanatic.
+
+	char * strcpy2a(char *dest, const char *src) {
+		 int i;
+		 for (i = 0; str[i] != '\0'; i++) [
+		 	 dest[i] = src[i];
+		 }
+		 
+		 dest[i] = '\0';
+		 return dest;
+	}
+	
+	An advantage of using a seperate index in strcpy2a is that we don't trash 
+	dest, so we can return it just like strcpy does. (In fairness, strcpy2 could
+	have saved a copy of the original location of dest and done the same thing.)
+
+strcpy string copy caveat
+    Note that nothing in strcpy2 , strcpy2a, or the orginal strcpy will save you
+	if dest(destination pointer) points to a region of memory that isn't big 
+	enough to hold the string at src (source pointer), or if somebody forgot to
+	tack a null on the end of src (in which case strcpy will just keep going 
+	until if finds a null character somewhere). As elsewhere, it's your job as
+	a programmer to make sure there is enough room. Since the compiler has no
+	idea what dest points to, this means that you have to remember how much room
+	is available there yourself.
+
+strncpy
+    If you are worried about overrunning dest, you could use strncpy instead.
+	The strncpy function takes a third argument that gives the maximum number of
+	characters to copy; however, if src doesn't contain a null character in this
+	range, the resulting string in dest won't either. Usually the only practical
+	practical application to strncpy is to extract the file k characters of a
+	string, as in stringCopy.c under Yale/examples/strings/
+
+strcat
+    A similar operation to strcpy is strcat. The difference is that strcat 
+	concatenates src on to the end of dest; so that if dest previous pointed to
+	"abc" and src to "def", dest will now point to "abcdef". Like strcpy, strcat
+	returns its first argument. A non-return-value version of strcat :
+	
+	void
+	strcat2(char *dest, const char *src) {
+		while (*dest) dest++; /* going to last of dest */
+		while (*dest++ = *src++); /* now incrementing dest with src */
+	}
+
+strncat
+    strncat has the same relationship to strcat that strncpy has to strcpy.
+	As with strcpy, the actual implementation of strcat may be much more subtle,
+	and is likely to be faster than rolling your own.
+
+Finding the length of a string
+    Because the length of a string is of fundamental importance in C (e.g. when
+	deciding if you can safely copy it somewhere else), the standard C library
+	provides a function strlen that counts the number of non-null characters in 
+	a string (until the first null '\0' is encountered). Note that if you are
+	allocating space for a copy of a string, you will need to add one to the 
+	value returned by strlen to account for null.
+
+	Here's a possible implementation:
+	
+	int strlen(const char *s) {
+		int i;
+		for(i = 0; *s; i++, s++) continue;
+		return i;
+	}
+	
+	Note the use of the comma operator in the increment step. The comma operator
+	applied to two expression evaluates both of them and discards the value of 
+	the first; it is usually used only in for loops where you want to initialize
+	or advance more than one variable at once.
+
+The strlen tarpit
+    A common mistake is to put a call to strlen in the header of a loop; for eg:
+	
+	char *
+	copyEvenCharactersBadVersion(char *dest, const char *src) {
+  	    int i;
+		int j;
+		
+		/* BAD: Calls strlen on every pass through the loop */
+		for(i = 0, j = 0; i < strlen(src); i += 2, j++) {
+			  dest[j] = src[i];
+		}
+		
+		dest[j] = '\0';
+		
+		return dest;
+	}
+
+Comparing Strings
+    If you  want to test if strings s1 and s2 contain the same character, writing
+	s1 == s2 won't work, since this tests instead whether s1 and s2 won't work,
+	since this tests instead whether s1 and s2 points to the same address. 
+	Instead, you should use strcmp, declared in string.h. The strcmp function
+	walks along both of its arguments until it either hits a null on both and
+	returns 0, or hits two different characters,  and returns a positive integer
+	if the first string's character is bigger and a negative integer if the 
+	second string's character is bigger ( a typical implementation will just 
+	subtract the two characters). A straightforward implementation might look
+	like this:
+	
+	int strcmp(const char *s1, const char *s2) {
+		while(*s1 && *s2 && (*s1 == *s2)) {
+			s1++;
+			s2++;
+		}
+		return *s1 - *s2;
+	}
+	
+Formatted output to Strings
+    You can write formatted output to a string buffer with sprintf just like you
+	can write it to stdout with printf or to a file with fprintf. Make sure when
+	you do so that there is enough room in the buffer you are writing to, or the
+	usual bad things will happen.
+
+Dynamic allocation of Strings
+    When allocating space for a copy of a string s using malloc, the required 
+	space is strlen(s)+1. Don't forget the +1, or bad things may happen.
+
+	Because allocating space for a copy of a string is such a common operation, 
+	many C libraries provide a strdup function that does exactly this.
+
+Command-line arguments
+    Now that we know about strings, we can finally do something with argc and
+	argv.
+
+	Recall that argv in main is declared as char**; this means that it is a 
+	pointer to a pointer to a char , or in this case the base address of an 
+	array of pointers to char, where each such pointer references a string.These
+	strings correspond to the Command-line arguments of your program, with the 
+	program name itself appearing in argv[0]
+
+	The count argv counts all arguments including argv[0]; it is 1 if your
+	is called with no arguments and larger otherwise.
+
+	Like strings, C terminates argv with a null; the value of argv[argc] is 
+	always 0 (a null pointer to char). In principle this allows you to recover
+	argc if you lose it.
+
+Structured data types
+    C has two kinds of structured data types:  structs and unions. A struct 
+	holds multiple values in consecutive memory locations, called fields, and
+	implements what in type theory is called a product type: the set of possible
+	values is the Cartesian product of the sets of possible values for its  
+	fields. In contrast, a union has multiple fields but they are all stored in 
+	the same location: effectively, this means that the only one field at a time
+	can hold a value, making a union a sum type whose set of possible values is
+	the union of the sets of possible values for each of its fields. Unlike what
+	happens in more sensible programming languages, unions are not tagged:
+	unless you keep track of this somewhere else, you can't tell which field in
+	a union is being used, and you can store a value of one type in a union and
+	try to read it back as a different type, and C won't complain.
+
+Structs
+    A struct is a way to define a type that consists of one or more other types	
+	pasted together. Here's a typical struct definition:
+
+	struct string {
+		   int length;
+		   char *data;
+	};
+
+	The defines a new type string that can be used anywhere you would use a 
+	simple type like int or float. When you declare a variable with type struct
+	string , the Compiler allocates enough space to hold both an int and a char*
+	(8 bytes on a typical 32-bit machine). You can get at the individual 
+	components using the . operator.
+
+Operations on Structs
+    Variables of type struct can be assigned to, passed into functions, returned
+	from functions, and tested for equality, just like any other type. Each such
+	operation is applied componentwise; for example, s1 = s2; is equivalent to 
+	s1.length = s2.length; s1.data = s2.data; and s1 == s2 is equivalent to
+	s1.length == s2.length && s1.data == s2.data.
+
+	These operations are not used as often as you might think: typically, instead
+	copying around entire structues, C programs pass around pointers, as is done
+	with arrays Pointers to structs are common enough in C that a special syntax
+	is provided for dereferencing them. Suppose we have:
+	
+		struct string s;          /* a struct */
+		struct string *sp;        /* a pointer to a struct */
+
+		a.length = 4;
+		s.data = "another overly long string";
+
+		sp = &s;         /*sp now points to s  */
+
+		We can then refer to elements of the struct string that sp points to
+		(i.e. s) in either of two ways:
+			  puts((*sp).data);
+			  puts(sp->data);
+
+    The second is more common, since it involves fewer parentheses. It is an 
+	error to write *sp.data in this case; since . binds tighter than *, the 
+	compiler will attempt to evaluate sp.data first and generate an error, since
+	sp doesn't have a data field.
+
+	Pointers to struct are commonly used in defining abstract data type, since 
+	it is possible to declare that a function returns e.g. a struct string * 
+	without specifying the components of a struct string. (All pointers to 
+	structs in C have the same size and structure, so the compiler doesn't need
+	to know the components to pass around the address.) Hiding the components 
+	discourages code that shouldn't look at them from doing so, and can be used,
+	for example, to enforce consistency between fields.
+	have a look at Yale/examples/myString/myString.h for further clarification.
+
+	In practice, we would probably go even further and replace all the struct
+	string * types with a new name declared with typedef.
+
+Operations on structs
+    What you can do to structs in pretty limited: you can look up or set 
+	individual components in a struct, you can pass structs to functions or as
+	return values from functions (which makes a copy of the original struct),
+	and you can assign the contents of one struct to another using s1 = s2 
+	(which is equivalent to copying each component seperately (deep copy))
+
+	One thing that you can't do is test two structs for equality using ==; this
+	is Because structs may contain extra space holding junk data. If you want to
+	test for equality, you will need to do it component by component.
+
+Layout in memory
+    The C99 standard guarantees that the components of a struct are stored in 
+	memory in the same order that they are defined in: that is, later components
+	are placed at higher address. This allows sneaky tricks like truncating a
+	structure if you don't use all of its components. Because of alignment
+	restrictions, the Compiler may add padding between components to put each 
+	component on its preffered alignment boundary.
+
+offset,stddef.h
+    You can find the position of a component within a struct using the offsetof
+	macro , which is defined in stddef.h. This returns the number of bytes from
+	the base of the struct that the component starts at, and can be used to do
+	various terrifying non-semantic things with pointers.
+
+Bitfields
+    It is possible to specify the exact number of bits taken up by a member of a
+	struct of integer type.This is seldom useful, but may in principle let you 
+	pack more information in less space. Bit fields are sometimes used to unpack
+	data from an external source that uses this trick, but this is dangerous, 
+	because there is no guarantee that the compiler will order the bit fields in
+	your struct in any particular order (at the very least , you will need to worry
+	about the endianness. 
+
+	Example:
+	struct color {
+		   unsigned int red    : 2;
+		   unsigned int green: 2;
+		   unsigned int blue  : 2;
+		   unsigned int alpha: 2;
+	};
+
+	This defines a struct that (probably) occupies only one byte, and supplies 
+	four 2-bit fields, each of which can hold values in the range 0-3.
+
+Unions
+    A Union is just like a struct, except that instead of allocating space to store
+	all the components, the compiler only allocates space to store the largest one,
+	and makes all the components refer to the same address. This can be used to
+	save space if you know that only one of several components will be 
+	meaningful for a particular object. An example might be a type representing
+	an object in a LISP-like language like Scheme: 
+
+	   struct lispObject {
+	   		  int type;               /* type code */
+			  union {
+			  		int           intVal;
+					double   floatVal;
+					char *     stringVal;
+					struct     {
+							   struct lispObject *car;
+							   struct lispObject *cdr;
+					} consVal;
+			  } u;
+		};
+
+	Now if you wanted to make a struct lispObject that held an integer value,
+	you might write
+		
+		lispObject o;
+
+		o.type = TYPE_INT;
+		o.u.intVal = 27;
+
+	Here TYPE_INT has presumably been defined somewhere. Note that nothing then
+	prevents you from writing
+			 
+			 x = 2.7 * o.u.floatVal;         /* BAD */
+
+	The effects  of this will be strange, Since it's likely that the bit pattern representing
+	27 as an int represents something  as a double. Avoiding such mistakes is your 
+	

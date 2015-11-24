@@ -1,0 +1,23 @@
+// Copyright 2015 YaleUniversity
+#include <stdlib.h>
+#include <string.h>
+#include "myString.h"
+
+struct string {
+  int length;
+  char *data;
+};
+
+struct string *makeString(const char *s) {
+  struct string *s2;
+
+  s2 = malloc(sizeof(struct string));
+  if (s2 == 0) {return 0; } /* let caller worry about malloc failure */
+
+  s2->length = strlen(s);
+
+  s2->data = malloc(s2->length);
+  if (s2->data == 0) {
+    free(s2);
+    return 0;
+  }
