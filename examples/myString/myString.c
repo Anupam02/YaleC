@@ -1,4 +1,3 @@
-// Copyright 2015 YaleUniversity
 #include <stdlib.h>
 #include <string.h>
 #include "myString.h"

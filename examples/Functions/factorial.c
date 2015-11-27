@@ -1,4 +1,3 @@
-// Copyright 2015
 
 /* Given n , compute n! = 1*2*3*...*n */
 /* Warning: will overflow on 32-bit machines if n > 12 */

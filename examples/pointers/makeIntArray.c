@@ -1,4 +1,3 @@
-// Copyright 2015 YaleUniversity
 #include <stdlib.h>
 #include <stdio.h>
 /* allocates and return a new integer array with n elements */

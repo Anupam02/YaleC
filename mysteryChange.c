@@ -1,4 +1,3 @@
-// Copyright 2015
 /** Here is a program that violates array bounds (which C doesn't detect) **/
 # include <stdio.h>
 # include <stdlib.h>

@@ -1,4 +1,3 @@
-// Copyright 2014 YaleUniversity
 #include<stdio.h>
 #include<stdlib.h>
 

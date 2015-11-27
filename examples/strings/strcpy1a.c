@@ -1,4 +1,3 @@
-// Copyright 2015 YaleUniversity
 #include <stdio.h>
 
 char *strcpy1a(char * dest, const char *src) {

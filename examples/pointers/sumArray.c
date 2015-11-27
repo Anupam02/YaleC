@@ -1,4 +1,3 @@
-// Copyright 2015
 #include <stdio.h>
 
 /** return the sum of the values in a, an array of size n */

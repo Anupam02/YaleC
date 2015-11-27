@@ -1,4 +1,3 @@
-// Copyright 2015
 #include <stdio.h>
 
 void doubler(int *x) {

@@ -1,4 +1,3 @@
-// Copyright 2015 YaleUniversity
 /* Functional "hello world" program */
 
 #include<stdio.h>

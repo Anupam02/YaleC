@@ -1,4 +1,3 @@
-// Copyright 2015,
 /* Demo program for malloc 'd two -dimensional arrays */
 
 #include <stdio.h>

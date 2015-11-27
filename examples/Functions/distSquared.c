@@ -1,4 +1,3 @@
-// Copyright 2015
 #include "distSquared.h"
 
 int distSquared(int dx, int dy) {

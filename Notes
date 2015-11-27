@@ -1208,4 +1208,71 @@ Unions
 
 	The effects  of this will be strange, Since it's likely that the bit pattern representing
 	27 as an int represents something  as a double. Avoiding such mistakes is your 
+	responsibility, which is why most uses of union occur inside larger structs that
+	contain enough information to figure out which variant of the union applies.
+    
+Enums
+    C provides the enum construction for the special case where you want to have
+	a sequence of named constants of type int, but you don't care what their actual 
+	values are , as in
+		   
+		   enum color {	RED, BLUE, GREEN, MAUVE, TURQUOISE };
+
+    This will assign the value 0 to RED, 1 to BLUE, and so on These values are 
+	effectively of type int, although you can declare variables , arguments, and 
+	return values as type enum color to indicate their intended interpretations.
+
+	Despite declaring a variable enum color c (say), the compiler will still allow
+	c to hold arbitrary values of type int.
+	Have a look at the Yale/examples/definations/enumsAreInts.c
+	
+Specifying particular values
+    It is also possible to specify particular values for particular enumerated 
+	constants, as in
+	
+	enum color { RED = 37, BLUE = 12, GREEN = 66, MAUVE = 5, TURQUOISE};
+
+    Anything that doesn't get a value starts with one plust the previous value;
+	so the above definition would set TURQUOISE to 6. This may result in two
+	names mapping to the same value.
+
+What most people do
+	In practice, enums are seldom used , and you will more commonly see a stack
+	of #defines:
+	#define RED          (0)
+	#define BLUE        (1)
+	#define GREEN     (2)
+	#define MAUVE    (3)
+	#define TURQUOISE (4)
+	The reason for this is partly historical -enum arrived late in the evolution
+	of C - but partly practical: a table of #defines makes it much easier to figure
+	out which color is represented by 3, without having to count through a list.
+	But if you never plan to use the numberical values, enum may be a better 
+	choice, because it guarantees that all the  values will be distinct.
+
+Using enum with union 
+    a natural way to use an enum is to tag a union with the type being used. For
+	example, a Lisp-like language might implement the following multi-purpose
+	data type:
+
+	enum TypeCode { TYPE_INT, TYPE_DOUBLE, TYPE_STRING };
+
+	struct LispValue {
+		   enum TypeCode typeCode;
+		   union {
+		   		 int i;
+				 double d;
+				 char *s;
+			} value;
+		};
+    Here we don't care what the numberic values of TYPE_INT, TYPE_DOUBLE, and
+	TYPE_STRING are, as long as we can apply switch to typeCode to figure out what
+	to do with one of these things.
+
+Type aliases using typedef
+	 Suppose that you want to represent character strings as
+	 struct string {
+	     int length;
+		 char *data;
+	};
 	

@@ -1,4 +1,3 @@
-// Copyright 2015
 /** program to illustrate use of valgrid **/
 # include <stdio.h>
 # include <string.h>

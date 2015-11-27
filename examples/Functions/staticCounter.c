@@ -1,5 +1,3 @@
-
-// Copyright 2015
 #include <stdio.h>
 
 /* return the number of times the function has been called */

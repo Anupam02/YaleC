@@ -1,4 +1,3 @@
-// Copyright 2015
 #include <stdio.h>
 
 /* return the next character from stdin without consuming it */

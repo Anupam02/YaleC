@@ -1,4 +1,3 @@
-// Copyright 2015
 #include <stdio.h>
 
 /* print a table of inverses */
